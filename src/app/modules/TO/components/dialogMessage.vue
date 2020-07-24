@@ -147,6 +147,7 @@
                     <q-input
                       v-else
                       v-model="newText"
+                      label="Input Message"
                       filled
                       autogrow
                       style="marginTop: -10px"
