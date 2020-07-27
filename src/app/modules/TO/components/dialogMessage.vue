@@ -7,11 +7,17 @@
           <q-card-section>
               <div class="row">
                     <div class="q-mt-none">
-                      <q-btn @click="newMessage" flat round class="q-mr-lg">
-                        <img :src="require('~/app/icons/Icon-Refresh.svg')" height="20" />
+                      <q-btn @click="newMessage" flat round>
+                        <span style="color: 'red" class="mdi mdi-tab-plus mdi-24px"></span>
+                        <q-tooltip>Add Data</q-tooltip>
                       </q-btn>
-                      <q-btn flat round>
-                        <img :src="require('~/app/icons/Icon-Print.svg')" height="20" />
+                      <q-btn @click="modifyMessage" flat round>
+                        <span class="mdi mdi-pencil-box-outline mdi-24px"></span>
+                        <q-tooltip>Modify</q-tooltip>
+                      </q-btn>
+                      <q-btn @click="deleteMessage" flat round>
+                        <span class="mdi mdi-delete mdi-24px"></span>
+                        <q-tooltip>Delete</q-tooltip>
                       </q-btn>
                     </div>
                     <q-separator/>
@@ -23,7 +29,7 @@
                     /> 
                     <SInput 
                     v-if="dataMessage.key == ''"
-                    v-model="dataMessage.dataLoad.tMessages['t-messages'][0].messtext[0]" 
+                    v-model="dataMessage.dataLoad.tMessages['t-messages'][0].messtext[1]" 
                     disable
                     label-text="Caller"  
                     style="width: 212px; marginRight: 10px; marginTop: 10px "/> 
@@ -138,7 +144,7 @@
                   <div style="marginTop: -15px">
                     <q-input
                       v-if="dataMessage.key == ''"
-                      v-model="dataMessage.dataLoad.tMessages['t-messages'][0].messtext[1]"
+                      v-model="dataMessage.dataLoad.tMessages['t-messages'][0].messtext[0]"
                       disable
                       filled
                       autogrow
@@ -147,7 +153,6 @@
                     <q-input
                       v-else
                       v-model="newText"
-                      label="Input Message"
                       filled
                       autogrow
                       style="marginTop: -10px"
@@ -159,7 +164,7 @@
         <q-separator style="marginTop: -10px"/>
           <q-card-actions align="right" style=" marginTop: -5px;">
             <q-btn flat label="Cancel" color="primary" v-close-popup />
-            <q-btn @click="deleteData" flat label="Ok" color="primary" v-close-popup />
+            <q-btn @click="saveData" flat label="Save" color="primary" />
           </q-card-actions>
         </q-card>
       </q-dialog>
@@ -176,6 +181,9 @@ export default defineComponent({
   setup(props, { root: { $api }, emit}) {
     const state = reactive({
         off : 'of',
+        newCaller: '',
+        newPhone: '',
+        newText: ''
     });
     const onClickFirst = () => {
       emit('onClickFirst')
@@ -191,7 +199,22 @@ export default defineComponent({
     }
     const newMessage = () => {
       emit('newMessage')
+      state.newCaller = ''
+      state.newPhone = ''
+      state.newText = ''
     }
+    const deleteMessage = () => {
+      emit('deleteMessage')
+    }
+    const saveData = () => {
+      emit('saveData', {...state})
+    }
+    const modifyMessage = () => {
+      state.newCaller = props.dataMessage.dataLoad.tMessages['t-messages'][0].messtext[1]
+      state.newPhone = props.dataMessage.dataLoad.tMessages['t-messages'][0].messtext[2]
+      state.newText = props.dataMessage.dataLoad.tMessages['t-messages'][0].messtext[0]
+      emit('modifayMessage', {...state})
+    } 
 
     return {
         ...toRefs(state),
@@ -199,7 +222,10 @@ export default defineComponent({
         onClickLast,
         onClickPrev,
         onClickNext,
-        newMessage
+        newMessage,
+        deleteMessage,
+        saveData,
+        modifyMessage
     }
   }
   })

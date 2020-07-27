@@ -295,6 +295,9 @@
     @onClickPrev="onClickPrev"
     @onClickNext="onClickNext"
     @newMessage="newMessage"
+    @deleteMessage="deleteMessage"
+    @saveData="saveData"
+    @modifayMessage="modifayMessage"
     />
   </div>
 </template>
@@ -311,15 +314,16 @@ import {
 import { tableHeaders, sorting, display, dataTable } from './tables/telephoneOperator.table'
 import { formatDates } from '../../helpers/dateFormat.helpers'
 import { Notify, date } from 'quasar';
-
+import { store } from '~/store';
 
 export default defineComponent({
   setup(_, { root: { $api } }) {
-    let messageLod, massInit
+    let messageLod, massInit, dataMess, keySave
     const state = reactive({
       isFetching: true,
       ciDate: '',
       data: [],
+      messDelete: [] as any,
       dataMessage: {
         data: [],
         dataLoad: [] as any,
@@ -333,7 +337,7 @@ export default defineComponent({
         data : [] as any,
         sorting: sorting,
         display: display,
-        bemark: {}
+        bemark: {} as any
       }
     });
 
@@ -345,7 +349,7 @@ export default defineComponent({
             });
 
     // FETCH_API
-    const FETCH_API = async (data, body?) => {
+    const FETCH_API = async (data, body?, params?) => {
       switch (data) {
         case 'prepare':          
           const [telopPrepare, telopList] = await Promise.all([
@@ -360,8 +364,7 @@ export default defineComponent({
           }
           break;
         case 'lineExtActDeact':
-          const [lineExtActDeact] = await 
-          $api.telephoneOperator.fetchApiTelephoneOperator('lineExtActDeact', body)
+          const lineExtActDeact = await $api.telephoneOperator.fetchApiTelephoneOperator('lineExtActDeact', body)
           if (lineExtActDeact.successFlag == 'true') {
             const message = body.sameResno == '?' ?
             'Line Extension activated' : body.sameResno == false ?
@@ -371,8 +374,7 @@ export default defineComponent({
           }
           break;
           case 'activateWifi':
-            const [activateWifi] = await
-              $api.telephoneOperator.fetchApiTelephoneOperator('wifiExt', body)
+            const activateWifi = await $api.telephoneOperator.fetchApiTelephoneOperator('wifiExt', body)
             break
           case 'message':
             const [messagePrepare, messageInit] = await Promise.all([
@@ -414,20 +416,32 @@ export default defineComponent({
               state.dataMessage.disablePrev = true
               messageLod = messageLoad
               massInit = messageInit
+                if (params.recidMsg && params.resLineZinr){
+                  state.dataMessage.dataLoad = messageLod[messageLod.length - 1]
+                  state.dataMessage.dataNr = messageInit.tot
+                  state.dataMessage.disablePrev = false
+                  state.dataMessage.disableNext = true
+                }
             }
             break
             case 'checkPermission':
-              const [checkPermission] = await Promise.all([
-                $api.telephoneOperator.fetchApiCommon('checkPermission', body)
-              ])
+              const checkPermission = await $api.telephoneOperator.fetchApiCommon('checkPermission', body)             
               if (checkPermission.zugriff == 'false') {
                 NotifyCreate('User not found', 'red')
               } else {
                 state.dataMessage.key = 'newData'
               }
             break
-        default:
-          break;
+            case 'messageDel':
+              const messageDel = await $api.telephoneOperator.fetchApiTelephoneOperator('messageDel', body)
+              state.messDelete = messageDel
+            break
+            default:
+              const messageSave = await $api.telephoneOperator.fetchApiTelephoneOperator('messageSave', body)
+              console.log('sukses', messageSave)
+              state.messDelete = messageSave
+              state.dataMessage.key = ''
+              break;
       }
       
     }
@@ -455,6 +469,25 @@ export default defineComponent({
           }
     )
 
+    watch(() => state.messDelete,
+          (messDelete, prev) => {
+            if (messDelete && messDelete !== prev) {              
+              if (messDelete.outputOkFlag == 'true') {
+                const data = [
+                      {
+                        gastnr: dataMess.gastnrmember,
+                        resnr: dataMess.resnr,
+                        reslinnr: dataMess.reslinnr
+                      },
+                      {
+                        ifFlag: 'no',
+                      }]
+                FETCH_API('message', data, messDelete)
+              }
+            }
+          }
+    )
+
     function getDefaultColumns(cols) {
       return cols.filter(
         (col) => ![
@@ -471,6 +504,7 @@ export default defineComponent({
 
     const onRowClick = (datarow) => {
       state.searches.bemark = datarow
+      state.dataMessage.key = ''
     }
 
     const onSearch = (val) => {
@@ -541,6 +575,7 @@ export default defineComponent({
 
     const onClickMessage = (dataRow) => {
       state.dataMessage.modal = true
+      dataMess = dataRow
       const data = [
         {
           gastnr: dataRow.gastnrmember,
@@ -600,12 +635,55 @@ export default defineComponent({
       }
     }
     const newMessage = () => {
+      keySave = 'save'
+      const user = store.state.auth.user as any || {};
       const data = {
-        userInit: '01',
+        userInit: user.userInit,
         arrayNr: '17',
         expectedNr: '2'
       }
       FETCH_API('checkPermission', data)
+    }
+
+    const deleteMessage = () => {
+      const data = {
+        recId: state.dataMessage.dataLoad.tMessages['t-messages'][0]['rec-id']
+      }
+      FETCH_API('messageDel', data)
+    }
+
+      const modifayMessage = () => {
+        state.dataMessage.key = 'newData'
+        keySave = 'modify'
+        const user = store.state.auth.user as any || {},
+        data = {
+          userInit: user.userInit,
+          arrayNr: '17',
+          expectedNr: '2'
+        }
+        FETCH_API('checkPermission', data)
+      }
+    const saveData = (dataMessge) => {
+      const user = store.state.auth.user as any || {},
+      dataRow = state.searches.bemark,
+      recid = state.dataMessage.dataLoad.tMessages['t-messages'][0]['rec-id'],
+      data = {
+        recId: keySave == 'save'? '0': recid,
+        iCase: keySave == 'save'? '1': '2',
+        gastnr: dataRow.gastnrmember,
+        resnr: dataRow.resnr,
+        reslinnr: dataRow.reslinnr,
+        userInit: user.userInit,
+        messTextSv: dataMessge.newText,
+        callerSv: dataMessge.newCaller,
+        rufnrSv: dataMessge.newPhone
+      }
+      console.log('sukses12', data)
+      if (dataMessge.newText !== '' && dataMessge.newCaller !== '' && dataMessge.newPhone !== ''){
+        FETCH_API('messageSave', data)
+      } else {
+        NotifyCreate('input please fill in', 'red')
+      }
     }
 
     return {
@@ -615,9 +693,12 @@ export default defineComponent({
       onClickNext,
       onClickLast,
       newMessage,
+      deleteMessage,
       activateLineExtension,
       deactivateLineExtension,
       deactivateSameResno,
+      saveData,
+      modifayMessage,
       activateWifi,
       onClickMessage,
       onClickFirst,
