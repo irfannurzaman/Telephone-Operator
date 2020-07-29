@@ -178,7 +178,7 @@ export default defineComponent({
     props: {
         dataMessage: {type: Object, default: null}
     },
-  setup(props, { root: { $api }, emit}) {
+  setup(props, {emit}) {
     const state = reactive({
         off : 'of',
         newCaller: '',

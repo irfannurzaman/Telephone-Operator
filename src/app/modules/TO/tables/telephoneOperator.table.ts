@@ -235,6 +235,62 @@ export const display = [
   },
 ]
 
+export const mode = [
+  {
+    label: 'Set wake up call',
+    value: 1
+  },
+  {
+    label: 'Set Wake up call',
+    value: 2
+  }
+]
+
+export const tableWakeupcall = [
+  {
+    label: 'Guest Name',
+    field: 'name',
+    name: 'inr',
+    sortable: true,
+  },
+  {
+    label: 'Room Numer',
+    field: 'zinr',
+    name: 'inr',
+    sortable: true,
+  },
+  {
+    label: 'Arival',
+    field: 'ankunft',
+    name: 'inr',
+    sortable: true,
+  },
+  {
+    label: 'Depature',
+    field: 'abreise',
+    name: 'inr',
+    sortable: true,
+  },
+  {
+    label: 'Group Name',
+    field: 'resname',
+    name: 'inr',
+    sortable: true,
+  },
+  {
+    label: 'Created',
+    field: '',
+    name: 'inr',
+    sortable: true,
+  },
+  {
+    label: 'HH.SS',
+    field: '',
+    name: 'inr',
+    sortable: true,
+  },
+]
+
 
 export const dataTable = (dataTable) => {
     const data = dataTable.telopList['telop-list'].map((items) =>({

@@ -11,8 +11,11 @@
         <q-btn flat round class="q-mr-lg">
           <img :src="require('~/app/icons/Icon-Refresh.svg')" height="30" />
         </q-btn>
-        <q-btn flat round>
+        <q-btn flat round class="q-mr-lg">
           <img :src="require('~/app/icons/Icon-Print.svg')" height="30" />
+        </q-btn>
+        <q-btn @click="alarmClock" flat round>
+          <img :src="require('~/app/icons/TO/Icon-alarmclock.svg')" height="30" />
         </q-btn>
       </div>
       <STable
@@ -21,7 +24,6 @@
         :data="data"
         :rows-per-page-options="[0]"
         :pagination.sync="pagination"
-        hide-bottom
         class="table-accounting-date"
       >
       <template #header="props">
@@ -299,6 +301,10 @@
     @saveData="saveData"
     @modifayMessage="modifayMessage"
     />
+    <wakeupcalldialog
+    :dataWakeupcall="dataWakeupcall"
+    @cekStatus="cekStatus"
+    />
   </div>
 </template>
 
@@ -338,6 +344,11 @@ export default defineComponent({
         sorting: sorting,
         display: display,
         bemark: {} as any
+      },
+      dataWakeupcall : {
+        isFetching: false,
+        dialogWakeupcall : false,
+        data: []
       }
     });
 
@@ -436,9 +447,17 @@ export default defineComponent({
               const messageDel = await $api.telephoneOperator.fetchApiTelephoneOperator('messageDel', body)
               state.messDelete = messageDel
             break
+            case 'readResLine':
+              const readResLine = await $api.telephoneOperator.fetchApiCommon('readResLine', body)
+              state.dataWakeupcall.data = readResLine.tResLine['t-res-line']
+              if (readResLine.tResLine['t-res-line'].length !== 0) {
+                setTimeout(() => {
+                  state.dataWakeupcall.isFetching = false
+                }, 1000)
+              }
+            break
             default:
               const messageSave = await $api.telephoneOperator.fetchApiTelephoneOperator('messageSave', body)
-              console.log('sukses', messageSave)
               state.messDelete = messageSave
               state.dataMessage.key = ''
               break;
@@ -678,12 +697,24 @@ export default defineComponent({
         callerSv: dataMessge.newCaller,
         rufnrSv: dataMessge.newPhone
       }
-      console.log('sukses12', data)
       if (dataMessge.newText !== '' && dataMessge.newCaller !== '' && dataMessge.newPhone !== ''){
         FETCH_API('messageSave', data)
       } else {
         NotifyCreate('input please fill in', 'red')
       }
+    }
+
+    const alarmClock = () => {
+      state.dataWakeupcall.dialogWakeupcall = true
+    }
+
+    const cekStatus = (value) => {
+      state.dataWakeupcall.isFetching= true
+      const data = {
+      caseType: '101',
+      rmNo: value
+      }
+      FETCH_API('readResLine', data)
     }
 
     return {
@@ -695,6 +726,8 @@ export default defineComponent({
       newMessage,
       deleteMessage,
       activateLineExtension,
+      alarmClock,
+      cekStatus,
       deactivateLineExtension,
       deactivateSameResno,
       saveData,
@@ -711,6 +744,7 @@ export default defineComponent({
   components: {
     searchIncoming: () => import('./components/SearchTelephoneOperator.vue'),
     messageDialog: () => import('./components/dialogMessage.vue'),
+    wakeupcalldialog: () => import('./components/wakeUpCall.vue')
   },
 });
 </script>
