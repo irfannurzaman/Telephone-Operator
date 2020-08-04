@@ -304,6 +304,8 @@
     <wakeupcalldialog
     :dataWakeupcall="dataWakeupcall"
     @cekStatus="cekStatus"
+    @onClickRoomNumber="onClickRoomNumber"
+    @onClickGroupName="onClickGroupName"
     />
   </div>
 </template>
@@ -317,18 +319,19 @@ import {
   watch,
   
 } from '@vue/composition-api';
-import { tableHeaders, sorting, display, dataTable } from './tables/telephoneOperator.table'
+import { tableHeaders, sorting, display, dataTable, dataTableWakeupcall } from './tables/telephoneOperator.table'
 import { formatDates } from '../../helpers/dateFormat.helpers'
 import { Notify, date } from 'quasar';
 import { store } from '~/store';
 
 export default defineComponent({
   setup(_, { root: { $api } }) {
-    let messageLod, massInit, dataMess, keySave
+    let messageLod, massInit, dataMess, keySave, respone
+    let dateNew = formatDates(new Date())
     const state = reactive({
       isFetching: true,
       ciDate: '',
-      data: [],
+      data: [] as any,
       messDelete: [] as any,
       dataMessage: {
         data: [],
@@ -348,7 +351,11 @@ export default defineComponent({
       dataWakeupcall : {
         isFetching: false,
         dialogWakeupcall : false,
-        data: []
+        data: [] as any,
+        prepareData: {
+          ankunft: dateNew,
+          abreise: dateNew
+        }
       }
     });
 
@@ -448,13 +455,41 @@ export default defineComponent({
               state.messDelete = messageDel
             break
             case 'readResLine':
-              const readResLine = await $api.telephoneOperator.fetchApiCommon('readResLine', body)
-              state.dataWakeupcall.data = readResLine.tResLine['t-res-line']
-              if (readResLine.tResLine['t-res-line'].length !== 0) {
-                setTimeout(() => {
-                  state.dataWakeupcall.isFetching = false
-                }, 1000)
+              const readResLine = await $api.telephoneOperator.fetchApiCommon('readResLine', body[0])
+              if (readResLine.tResLine['t-res-line'].length !== 0) {                
+                for (let i in readResLine.tResLine['t-res-line']) {
+                  const readReservation = await $api.telephoneOperator.fetchApiCommon('readReservation', {
+                  caseType: 1,
+                  rsvNo: readResLine.tResLine['t-res-line'][i].resnr
+                  })
+                  console.log('sukses1', readReservation)
+                }
+              } else {
+                NotifyCreate('In-house guest not found', 'red')
               }
+
+              console.log('sukses2', readResLine )
+
+              if (body[1].value !== '') {
+                state.dataWakeupcall.isFetching= false
+                const data = readResLine.tResLine['t-res-line'].filter(items => items.zinr == body[1].value)
+                state.dataWakeupcall.prepareData = data[0]
+                state.dataWakeupcall.data =  state.dataWakeupcall.data.filter(items => items.zinr == body[1].value)
+              } else {
+                state.dataWakeupcall.isFetching= false
+              }
+            break
+            case 'readResHistory': 
+              const readResHistory = await $api.telephoneOperator.fetchApiCommon('readResHistory', {caseType: 4})
+                  setTimeout(() => {
+                    if(readResHistory.tResHistory['t-res-history'].length !== 0){
+                      state.dataWakeupcall.isFetching= false
+                      state.dataWakeupcall.data = dataTableWakeupcall(readResHistory)
+                      } else {
+                        state.dataWakeupcall.isFetching = false
+                        NotifyCreate('not found', 'red')
+                      }
+                  },1000)
             break
             default:
               const messageSave = await $api.telephoneOperator.fetchApiTelephoneOperator('messageSave', body)
@@ -710,10 +745,42 @@ export default defineComponent({
 
     const cekStatus = (value) => {
       state.dataWakeupcall.isFetching= true
-      const data = {
-      caseType: '101',
-      rmNo: value
+      const params ={
+        caseType: 4
       }
+      FETCH_API('readResHistory', params)
+    } 
+
+    const onClickGroupName = (value) => {
+        const data = [
+        {
+          caseType: 101,
+          rmNo: value
+        },
+        {
+          value
+        },
+        {
+          key: 'group'
+        }
+        ]
+        FETCH_API('readResLine', data)
+
+    }
+
+    const onClickRoomNumber = (value) => {
+      const data = [
+      {
+        caseType: 101,
+        rmNo: value
+      },
+      {
+        value
+      },
+      {
+        key: 'room'
+      }
+      ]
       FETCH_API('readResLine', data)
     }
 
@@ -728,9 +795,11 @@ export default defineComponent({
       activateLineExtension,
       alarmClock,
       cekStatus,
+      onClickGroupName,
       deactivateLineExtension,
       deactivateSameResno,
       saveData,
+      onClickRoomNumber,
       modifayMessage,
       activateWifi,
       onClickMessage,

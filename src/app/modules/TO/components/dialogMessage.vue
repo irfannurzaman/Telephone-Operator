@@ -163,7 +163,7 @@
           </q-card-section>
         <q-separator style="marginTop: -10px"/>
           <q-card-actions align="right" style=" marginTop: -5px;">
-            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn @click="cencel" flat label="Cancel" color="primary" />
             <q-btn @click="saveData" flat label="Save" color="primary" />
           </q-card-actions>
         </q-card>
@@ -209,6 +209,14 @@ export default defineComponent({
     const saveData = () => {
       emit('saveData', {...state})
     }
+
+    const cencel = () => {
+      if (props.dataMessage.key !== '') {
+        props.dataMessage.key = ''
+      } else {
+        props.dataMessage.modal = false
+      }
+    }
     const modifyMessage = () => {
       state.newCaller = props.dataMessage.dataLoad.tMessages['t-messages'][0].messtext[1]
       state.newPhone = props.dataMessage.dataLoad.tMessages['t-messages'][0].messtext[2]
@@ -225,7 +233,8 @@ export default defineComponent({
         newMessage,
         deleteMessage,
         saveData,
-        modifyMessage
+        modifyMessage,
+        cencel
     }
   }
   })

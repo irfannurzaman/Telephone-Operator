@@ -1,4 +1,6 @@
 import { TableHeader } from '~/components/VhpUI/typings';
+import { date } from 'quasar'
+import { formatDates } from '~/app/helpers/dateFormat.helpers';
 
 export const tableHeaders: TableHeader[] = [
   {
@@ -238,18 +240,18 @@ export const display = [
 export const mode = [
   {
     label: 'Set wake up call',
-    value: 1
+    value: 'Wakeup Calls ON;01;PANA'
   },
   {
-    label: 'Set Wake up call',
-    value: 2
+    label: 'Cancel Wake up call',
+    value: 'Wakeup Calls OFF;01;PANA'
   }
 ]
 
 export const tableWakeupcall = [
   {
     label: 'Guest Name',
-    field: 'name',
+    field: 'gname',
     name: 'inr',
     sortable: true,
   },
@@ -273,23 +275,35 @@ export const tableWakeupcall = [
   },
   {
     label: 'Group Name',
-    field: 'resname',
+    field: 'grpname',
     name: 'inr',
     sortable: true,
   },
   {
     label: 'Created',
-    field: '',
+    field: 'aenderung',
     name: 'inr',
     sortable: true,
   },
   {
-    label: 'HH.SS',
-    field: '',
+    label: 'HH.MM',
+    field: 'hour',
     name: 'inr',
     sortable: true,
   },
 ]
+
+export const dataTableWakeupcall = (dataTable) => {
+  const data = dataTable.tResHistory['t-res-history'].map((items) => ({
+      gname: items.gname,
+      zinr: items.zinr,
+      ankunft: items.ankunft,
+      abreise: items.abreise,
+      grpname: items.grpname,
+      aenderung: items.aenderung.substr( items.aenderung.indexOf('TIME'), items.aenderung.indexOf(';')-5)
+    }))
+    return data
+}
 
 
 export const dataTable = (dataTable) => {
