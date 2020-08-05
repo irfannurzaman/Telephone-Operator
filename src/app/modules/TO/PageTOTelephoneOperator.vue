@@ -352,10 +352,7 @@ export default defineComponent({
         isFetching: false,
         dialogWakeupcall : false,
         data: [] as any,
-        prepareData: {
-          ankunft: dateNew,
-          abreise: dateNew
-        }
+        prepareData: {} as any
       }
     });
 
@@ -365,6 +362,14 @@ export default defineComponent({
               color: col,
               type: type
             });
+    const deleteData = (body?) => {
+      state.dataWakeupcall.prepareData = {
+          name: '',
+          ankunft: body,
+          abreise: body,
+      }
+      state.dataWakeupcall.data = []
+    }
 
     // FETCH_API
     const FETCH_API = async (data, body?, params?) => {
@@ -456,27 +461,28 @@ export default defineComponent({
             break
             case 'readResLine':
               const readResLine = await $api.telephoneOperator.fetchApiCommon('readResLine', body[0])
-              if (readResLine.tResLine['t-res-line'].length !== 0) {                
-                for (let i in readResLine.tResLine['t-res-line']) {
-                  const readReservation = await $api.telephoneOperator.fetchApiCommon('readReservation', {
-                  caseType: 1,
-                  rsvNo: readResLine.tResLine['t-res-line'][i].resnr
-                  })
-                  console.log('sukses1', readReservation)
+                if (readResLine.tResLine['t-res-line'].length !== 0) {                
+                  for (let i in readResLine.tResLine['t-res-line']) {
+                    const readReservation = await $api.telephoneOperator.fetchApiCommon('readReservation', {
+                      caseType: 1,
+                    rsvNo: readResLine.tResLine['t-res-line'][i].resnr
+                    })
+                    console.log('sukses1', readReservation)
+                  }
+                } else {
+                  NotifyCreate('In-house guest not found', 'red')
+                }
+              if (body[2].key == 'room') {                
+                if (body[1].value !== '') {
+                  state.dataWakeupcall.isFetching= false
+                  const data = readResLine.tResLine['t-res-line'].filter(items => items.zinr == body[1].value)
+                  state.dataWakeupcall.prepareData = data[0]
+                  state.dataWakeupcall.data =  state.dataWakeupcall.data.filter(items => items.zinr == body[1].value)
+                } else {
+                  state.dataWakeupcall.isFetching= false
                 }
               } else {
-                NotifyCreate('In-house guest not found', 'red')
-              }
-
-              console.log('sukses2', readResLine )
-
-              if (body[1].value !== '') {
-                state.dataWakeupcall.isFetching= false
-                const data = readResLine.tResLine['t-res-line'].filter(items => items.zinr == body[1].value)
-                state.dataWakeupcall.prepareData = data[0]
-                state.dataWakeupcall.data =  state.dataWakeupcall.data.filter(items => items.zinr == body[1].value)
-              } else {
-                state.dataWakeupcall.isFetching= false
+                alert('group')
               }
             break
             case 'readResHistory': 
@@ -741,6 +747,7 @@ export default defineComponent({
 
     const alarmClock = () => {
       state.dataWakeupcall.dialogWakeupcall = true
+      deleteData(dateNew)
     }
 
     const cekStatus = (value) => {

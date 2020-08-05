@@ -252,45 +252,56 @@ export const tableWakeupcall = [
   {
     label: 'Guest Name',
     field: 'gname',
-    name: 'inr',
+    name: 'guestname',
     sortable: true,
   },
   {
     label: 'Room Numer',
     field: 'zinr',
-    name: 'inr',
+    name: 'roomnumber',
     sortable: true,
   },
   {
     label: 'Arival',
     field: 'ankunft',
-    name: 'inr',
+    name: 'arival',
     sortable: true,
   },
   {
     label: 'Depature',
     field: 'abreise',
-    name: 'inr',
+    name: 'depature',
     sortable: true,
   },
   {
     label: 'Group Name',
     field: 'grpname',
-    name: 'inr',
+    name: 'groupname',
     sortable: true,
   },
   {
     label: 'Created',
-    field: 'aenderung',
-    name: 'inr',
+    field: 'created',
+    name: 'created',
     sortable: true,
   },
   {
     label: 'HH.MM',
-    field: 'hour',
-    name: 'inr',
+    field: 'aenderung',
+    name: 'hour',
     sortable: true,
   },
+  {
+    label: 'ACK',
+    filed: 'ack',
+    name: 'ack'
+  },
+  {
+    label: 'result',
+    filed: 'result',
+    name: 'result',
+    sortable: true
+  }
 ]
 
 export const dataTableWakeupcall = (dataTable) => {
@@ -298,9 +309,12 @@ export const dataTableWakeupcall = (dataTable) => {
       gname: items.gname,
       zinr: items.zinr,
       ankunft: items.ankunft,
-      abreise: items.abreise,
+      abreise: date.formatDate(items.abreise, 'DD/MM/YYYY'),
       grpname: items.grpname,
-      aenderung: items.aenderung.substr( items.aenderung.indexOf('TIME'), items.aenderung.indexOf(';')-5)
+      created: date.formatDate(items.datum, 'DD/MM/YYYY'),
+      aenderung: items.aenderung.substring( items.aenderung.indexOf('TIME')+6, items.aenderung.indexOf('UID')-1),
+      result: items.zeit,
+      cekBox: false
     }))
     return data
 }

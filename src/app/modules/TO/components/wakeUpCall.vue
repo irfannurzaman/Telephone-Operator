@@ -10,21 +10,10 @@
                     <SInput 
                     label-text="Time" 
                     style="width: 130px; height: 30px; marginTop: -5px" 
-                    filled 
+                    filled
+                    type="time"
                     v-model="timeWithSeconds" 
-                    >
-                        <template v-slot:append>
-                            <span class="mdi mdi-alarm">                                
-                                <q-popup-proxy>
-                                    <q-time
-                                        landscape
-                                        v-model="timeWithSeconds"
-                                        format24h
-                                    />
-                                </q-popup-proxy>
-                            </span>
-                        </template>
-                    </SInput>
+                    />
                     <SInput 
                     @blur="onClickGroupName"
                     v-model="groupName" 
@@ -33,6 +22,7 @@
                     :disable="disableGroupName"/>
                     <q-checkbox 
                     size="xs" 
+                    v-on:click.native="methodCheckbox"
                     v-model="shape" 
                     label="Group Wake Up Call" 
                     style="marginLeft: -10px"/>
@@ -77,8 +67,32 @@
                 :columns="tableWakeupcall" 
                 :pagination.sync="pagination"
                 class="table-accounting-date"
+                row-key="name"
                 hide-bottom
-                :data="dataWakeupcall.data" />
+                :data="dataWakeupcall.data">
+                <template v-slot:body="props">
+                    <q-tr :props="props">
+                        <q-td
+                        v-for="col in props.cols.filter(
+                            col => !['hour', 'ack', 'result'].includes(col.name)
+                        )"
+                        :key="col.name" 
+                        :props="props"
+                        >{{col.value}}</q-td>
+                        <q-td @click="onColClick(props.row)" :props="props" key="hour">
+                            <q-tr v-if="timeFalidasi !== props.row.zinr">{{props.row.aenderung}}</q-tr>
+                            <q-input @blur="blurTime" v-else v-model="inputTime" borderless  dense/>
+                        </q-td>
+                        <q-td :props="props" key="ack">
+                            <q-checkbox v-if="boxFalidasi" size="xs" v-model="props.row.cekBox" />
+                            <q-checkbox v-on:click.native="checkBoxfalse" v-else size="xs" v-model="checkboxData" />
+                        </q-td>
+                        <q-td :props="props" key="result">
+                            {{props.row.result}}
+                        </q-td>
+                    </q-tr>
+                </template>
+                </STable>
             </q-card-section>
         <q-separator style="marginTop: -10px"/>
         <q-card-actions align="right" style="marginTop: -5px; bottom: 0px">
@@ -107,9 +121,15 @@ export default defineComponent({
                     value: 'Wakeup Calls ON;01;PANA'
                     },
         shape: false,
+        boxTime: false,
         disableGroupName: true,
         roomnumberDisable: false,
-        groupName: ''
+        groupName: '',
+        timeFalidasi : '',
+        boxFalidasi: false,
+        inputTime: '',
+        groupDisable: true,
+        checkboxData: false
     })
 
     const cekStatus = () => {
@@ -124,21 +144,59 @@ export default defineComponent({
         emit('onClickGroupName', state.groupName)
     }
 
-    watch(() => state.shape,
-    (shape) => {
-            if (shape == true) {
+    const methodCheckbox = () => {
+            if (state.shape == true) {
                 state.disableGroupName = false
                 state.roomnumberDisable = true
+                state.boxFalidasi = true
             } else {
                 state.disableGroupName = true
                 state.roomnumberDisable = false
+                state.boxFalidasi = false
+                state.checkboxData = false
             }
+    }
+
+        
+    const onColClick = (col) => {
+        if (state.shape == true) {            
+            state.timeFalidasi = col.zinr
+            state.inputTime = col.aenderung
+        }
+    }
+
+    const blurTime = () => {
+        state.timeFalidasi = ''
+    }
+
+    const checkBoxfalse = () => {
+        state.checkboxData = false
+    }
+
+
+    watch(() => state.roomNumber,
+    (roomNumber) => {
+        if(roomNumber.length !== 0){
+            state.groupName = ''
+        }
+    })
+
+    watch(() => state.groupName,
+    (groupName) => {
+        if(groupName.length !== 0){
+            state.roomNumber = ''
+            props.dataWakeupcall.prepareData.name = ''
+        }
     })
 
     return {
         ...toRefs(state),
         tableWakeupcall,
+        methodCheckbox,
+        onColClick,
+        checkBoxfalse,
         cekStatus,
+        blurTime,
         mode,
         onClickRoomNumber,
         onClickGroupName,
