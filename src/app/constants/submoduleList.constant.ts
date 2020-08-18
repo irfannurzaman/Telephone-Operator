@@ -18,26 +18,6 @@ const SUBMODULES: Submodule = {
     'Accounting Date Parameter',
     'Closing',
   ],
-  FOC: [
-    'Guest Folio',
-    'Nonguest Folio',
-    'Master Folio',
-    'Closed Folio',
-    'Reservation Deposit',
-    'Individual Check Out',
-    'Group Check Out',
-    'Quick Posting To Guest Folio',
-    'Money Change Posting',
-    'Foreign Currency Exchange Rate',
-    'Report Fo Transaction',
-    'Report Booking Journal By User',
-    'Report Payment Journal By User',
-    'Report Fo Cancellation',
-    'Report Outstanding Folio',
-    'Report Today Departed Guest',
-    'Report Over Credit Limit',
-    'Report Departed Unbalance Guest',
-  ],
   HK: [
     'Overview',
     'Room Status Admin',
@@ -56,6 +36,7 @@ const SUBMODULES: Submodule = {
   ],
   TO: [
     'TelephoneOperator',
+    'CallAdministration',
   ],
 };
 

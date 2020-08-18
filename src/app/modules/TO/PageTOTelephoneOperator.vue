@@ -472,6 +472,7 @@ export default defineComponent({
                 } else {
                   NotifyCreate('In-house guest not found', 'red')
                 }
+                console.log('sukses',readResLine )
               if (body[2].key == 'room') {                
                 if (body[1].value !== '') {
                   state.dataWakeupcall.isFetching= false

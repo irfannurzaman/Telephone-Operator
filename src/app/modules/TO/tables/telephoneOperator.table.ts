@@ -1,6 +1,5 @@
 import { TableHeader } from '~/components/VhpUI/typings';
 import { date } from 'quasar'
-import { formatDates } from '~/app/helpers/dateFormat.helpers';
 
 export const tableHeaders: TableHeader[] = [
   {
