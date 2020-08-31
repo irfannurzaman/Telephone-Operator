@@ -100,7 +100,7 @@ export default defineComponent({
         start: new Date(2019, 0, 14),
         end: new Date(2019, 0, 14)
       },
-      sorting: 'Guest Name',
+      sorting: 'Guest Name' as any,
       display: 'In-house Guest',
       ReqNumber: ref(''),
       valDate: false,

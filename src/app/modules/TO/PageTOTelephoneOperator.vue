@@ -25,6 +25,7 @@
         :rows-per-page-options="[0]"
         :pagination.sync="pagination"
         class="table-accounting-date"
+        hide-bottom
       >
       <template #header="props">
         <q-tr :props="props">
@@ -104,14 +105,17 @@
       <template #body="props">
         <q-tr
           :props="props"
+          class="cursor-pointer"
           @click="onRowClick(props.row)"
+          :class="{
+            selected: props.row.selected,
+          }"
         >
           <q-td
             :props="props"
             key="icons"
             class="fixed-col left"
             style="padding-left: '8px'; max-width: 100px, width: 100px"
-            :class="(props.row.selected) ? 'bg-blue-grey-2 text-black':'bg-white text-black'"
           >
             <span 
             v-if="props.row['resli-wabkurz'] !== ''" 
@@ -237,10 +241,10 @@
             <q-icon name="mdi-dots-vertical" size="16px">
               <q-menu auto-close anchor="bottom right" self="top right">
                 <q-list>
-                  <q-item clickable v-ripple>
+                  <q-item clickable v-ripple @click="taskReport(props.row)">
                     <q-item-section>Task Report</q-item-section>
                   </q-item>
-                  <q-item clickable v-ripple>
+                  <q-item clickable v-ripple @click="ignitoGuest(props.row)">
                     <q-item-section>Incognito Guest</q-item-section>
                   </q-item>
                   <q-separator style="marginTop: -2px" class="q-my-md" />
@@ -307,6 +311,7 @@
     @onClickRoomNumber="onClickRoomNumber"
     @onClickGroupName="onClickGroupName"
     />
+    <taskReport :dataTaskReport="dataTaskReport"/>
   </div>
 </template>
 
@@ -322,16 +327,24 @@ import {
 import { tableHeaders, sorting, display, dataTable, dataTableWakeupcall } from './tables/telephoneOperator.table'
 import { formatDates } from '../../helpers/dateFormat.helpers'
 import { Notify, date } from 'quasar';
+import { paramsOnSearch, paramsPrepare, saveDataMessage } from './utils/paramsTelephoneOperator'
 import { store } from '~/store';
 
 export default defineComponent({
   setup(_, { root: { $api } }) {
-    let messageLod, massInit, dataMess, keySave, respone
+    let messageLod, 
+    massInit, 
+    dataMess, 
+    keySave, 
+    respone, 
+    valueIncognitoGuest, 
+    valueOnSearch
     let dateNew = formatDates(new Date())
     const state = reactive({
       isFetching: true,
       ciDate: '',
       data: [] as any,
+      paramsIncognitoGuest: '' as any,
       messDelete: [] as any,
       dataMessage: {
         data: [],
@@ -353,7 +366,8 @@ export default defineComponent({
         dialogWakeupcall : false,
         data: [] as any,
         prepareData: {} as any
-      }
+      },
+      dataTaskReport: {}
     });
 
     // HELPER 
@@ -361,6 +375,18 @@ export default defineComponent({
               message: mess,
               color: col,
               type: type
+            });
+    const NotifyActions = (mess, col?,) => Notify.create({
+              message: mess,
+              color: 'primary',
+              timeout: 0,
+              position: 'center',
+              actions: [
+                { label: 'No', color: 'white', handler: () => { /* ... */ } },
+                { label: 'Yes', color: 'white', handler: () => {
+                  FETCH_API('incognitoGuest', valueIncognitoGuest, mess)
+                } }
+              ]
             });
     const deleteData = (body?) => {
       state.dataWakeupcall.prepareData = {
@@ -467,12 +493,10 @@ export default defineComponent({
                       caseType: 1,
                     rsvNo: readResLine.tResLine['t-res-line'][i].resnr
                     })
-                    console.log('sukses1', readReservation)
                   }
                 } else {
                   NotifyCreate('In-house guest not found', 'red')
                 }
-                console.log('sukses',readResLine )
               if (body[2].key == 'room') {                
                 if (body[1].value !== '') {
                   state.dataWakeupcall.isFetching= false
@@ -498,6 +522,34 @@ export default defineComponent({
                       }
                   },1000)
             break
+            case 'checkPermissionIncognitoGuest':
+              const checkPermissionIncognitoGuest = await $api.telephoneOperator.fetchApiCommon('checkPermission', {
+                userInit: '01',
+                arrayNr: '14',
+                expectedNr: '2'
+                })
+                if (checkPermissionIncognitoGuest.zugriff == "true"){                    
+                  if (params['active-flag'] !== 2) {
+                    if (params.pseudofix) {
+                      NotifyActions('Incognito Guest: Status ON. Undo it?')
+                    } else {
+                      NotifyActions('Incognito Guest: Status OFF. Switch it ON?')
+                    }
+                  }
+                  } else {
+                  NotifyCreate('You don’t have access', 'red')
+                }
+            break
+            case 'incognitoGuest':
+              const incognitoGuest = await $api.telephoneOperator.fetchApiTelephoneOperator('incognitoGuest', {
+                tResnr: body.resnr,
+                tReslinnr: body.reslinnr,
+                userInit: '01'
+              })
+              if (incognitoGuest.outputOkFlag) {
+                state.paramsIncognitoGuest = params
+              }
+            break
             default:
               const messageSave = await $api.telephoneOperator.fetchApiTelephoneOperator('messageSave', body)
               state.messDelete = messageSave
@@ -507,6 +559,16 @@ export default defineComponent({
       
     }
 
+    watch(() => state.paramsIncognitoGuest,
+          (paramsIncognitoGuest, prev) => {
+            if(valueOnSearch == undefined) {
+              FETCH_API('prepare',paramsPrepare(state.ciDate))
+            } else {
+              FETCH_API('prepare',paramsOnSearch(valueOnSearch, state.ciDate))
+            }
+          }
+    )
+
     onMounted(() => {
         FETCH_API('prepare')
     })
@@ -514,18 +576,7 @@ export default defineComponent({
     watch(() => state.ciDate,
           (ciDate, prev) => {
             if (ciDate && ciDate !== prev) {
-            const data = {
-                sorttype : 2,
-                room: '',
-                fDate1: '01/14/19',
-                fDate2: '01/31/19',
-                ciDate: date.formatDate(ciDate, 'MM/DD/YY'),
-                lname: '*',
-                lastSort: 1,
-                Inat: '',
-                Iresnr: ''
-            }
-          FETCH_API('prepare',data)
+            FETCH_API('prepare',paramsPrepare(ciDate))
             }
           }
     )
@@ -564,24 +615,18 @@ export default defineComponent({
     }
 
     const onRowClick = (datarow) => {
+      for(const i in state.data){
+        state.data[i]['selected'] = false
+      }
+      datarow['selected'] = true;
       state.searches.bemark = datarow
       state.dataMessage.key = ''
     }
 
     const onSearch = (val) => {
+      valueOnSearch = val
       state.isFetching = true
-      const data = {
-          sorttype: val.reservation,
-          room: val.guestname !== 3 ? val.dataInput.NationdanRomm : '',
-          fdate1: date.formatDate(val.date.start, 'MM/DD/YY'),
-          fdate2: date.formatDate(val.date.end, 'MM/DD/YY'),
-          ciDate: date.formatDate(state.ciDate, 'MM/DD/YY'),
-          lname: val.dataInput.valName == ''? ' ': val.dataInput.valName,
-          lastSort: val.guestname,
-          lnat: val.guestname == 3 ? val.dataInput.NationdanRomm : '',
-          lresnr: val.dataInput.ResNo
-        }
-      FETCH_API('prepare',data)
+      FETCH_API('prepare',paramsOnSearch(val, state.ciDate))
     }
 
     const activateLineExtension = (dataRow) => {
@@ -727,20 +772,16 @@ export default defineComponent({
     const saveData = (dataMessge) => {
       const user = store.state.auth.user as any || {},
       dataRow = state.searches.bemark,
-      recid = state.dataMessage.dataLoad.tMessages['t-messages'][0]['rec-id'],
-      data = {
-        recId: keySave == 'save'? '0': recid,
-        iCase: keySave == 'save'? '1': '2',
-        gastnr: dataRow.gastnrmember,
-        resnr: dataRow.resnr,
-        reslinnr: dataRow.reslinnr,
-        userInit: user.userInit,
-        messTextSv: dataMessge.newText,
-        callerSv: dataMessge.newCaller,
-        rufnrSv: dataMessge.newPhone
+      recid = state.dataMessage.dataLoad.tMessages['t-messages'][0]['rec-id']
+      const params = {
+        keySave,
+        dataRow,
+        recid,
+        dataMessge,
+        user
       }
       if (dataMessge.newText !== '' && dataMessge.newCaller !== '' && dataMessge.newPhone !== ''){
-        FETCH_API('messageSave', data)
+        FETCH_API('messageSave', saveDataMessage(params))
       } else {
         NotifyCreate('input please fill in', 'red')
       }
@@ -776,6 +817,11 @@ export default defineComponent({
 
     }
 
+    const ignitoGuest = (value) => {
+      valueIncognitoGuest = value
+       FETCH_API('checkPermissionIncognitoGuest', '', value)
+    }
+
     const onClickRoomNumber = (value) => {
       const data = [
       {
@@ -792,14 +838,23 @@ export default defineComponent({
       FETCH_API('readResLine', data)
     }
 
+    const taskReport = (dataRow) => {
+      state.dataTaskReport = {
+        modal : true,
+        dataRow : dataRow
+      }
+    }
+
     return {
       ...toRefs(state),
+      taskReport,
       onRowClick,
       onClickPrev,
       onClickNext,
       onClickLast,
       newMessage,
       deleteMessage,
+      ignitoGuest,
       activateLineExtension,
       alarmClock,
       cekStatus,
@@ -821,7 +876,8 @@ export default defineComponent({
   components: {
     searchIncoming: () => import('./components/SearchTelephoneOperator.vue'),
     messageDialog: () => import('./components/dialogMessage.vue'),
-    wakeupcalldialog: () => import('./components/wakeUpCall.vue')
+    wakeupcalldialog: () => import('./components/wakeUpCall.vue'),
+    taskReport: () => import('./components/taskReport.vue')
   },
 });
 </script>
@@ -839,6 +895,11 @@ export default defineComponent({
     &:first-child th {
       top: 0;
     }
+  }
+
+  tr.selected td {
+    background-color: #2d00e2 !important;
+    color: #fff;
   }
 }
 </style>

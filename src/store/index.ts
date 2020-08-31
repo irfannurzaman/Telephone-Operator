@@ -4,7 +4,6 @@ import { createDirectStore } from 'direct-vuex';
 
 import layout from '~/layouts/store';
 import auth from '~/app/auth/auth.store';
-import foc from '~/app/modules/FOC/store';
 
 Vue.use(Vuex);
 
@@ -18,7 +17,6 @@ const {
   modules: {
     layout,
     auth,
-    foc,
   },
 });
 
